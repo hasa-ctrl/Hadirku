@@ -19,59 +19,86 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Screen Loading Awal (Sebelum Firebase Terkoneksi) -->
-    <div id="app-loading" class="fixed inset-0 bg-slate-900 text-white z-[9999] flex flex-col items-center justify-center transition-opacity duration-500">
+    <!-- Screen Loading Awal (Dengan Proteksi Timeout Anti-Stuck) -->
+    <div id="app-loading" class="fixed inset-0 bg-slate-900 text-white z-[9999] flex flex-col items-center justify-center p-6 text-center transition-opacity duration-500">
         <div class="bg-indigo-600 text-white p-4 rounded-2xl mb-4 animate-bounce">
             <i data-lucide="calendar-check-2" class="w-10 h-10"></i>
         </div>
         <h2 class="text-xl font-bold tracking-tight">HadirKu Premium</h2>
-        <p class="text-xs text-slate-400 mt-2 flex items-center gap-2">
-            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>
+        <p id="loading-status" class="text-xs text-slate-400 mt-2 flex items-center gap-2 justify-center">
+            <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping"></span>
             Mengamankan sambungan enkripsi cloud...
         </p>
+
+        <!-- Diagnostik box (tersembunyi secara default, muncul jika lambat/Firebase belum diisi) -->
+        <div id="diagnostic-box" class="hidden mt-8 max-w-sm p-4 bg-slate-800 rounded-2xl border border-slate-700 text-left">
+            <span class="text-amber-400 font-bold text-xs flex items-center gap-1.5 mb-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i> Koneksi Cloud Terhambat
+            </span>
+            <p class="text-[11px] text-slate-300 leading-relaxed mb-4">
+                Aplikasi membutuhkan waktu terlalu lama untuk terhubung ke Firebase Cloud. Pastikan Anda telah mengisi <code class="bg-slate-950 px-1 py-0.5 rounded text-rose-400 font-mono">firebaseConfig</code> di file index.html dengan benar dan mengaktifkan <strong class="text-white">Email/Password Auth</strong> di Firebase Console.
+            </p>
+            <div class="flex gap-2">
+                <button onclick="forceLocalMode()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">
+                    <i data-lucide="wifi-off" class="w-3.5 h-3.5"></i> Masuk Mode Demo Lokal (Offline)
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- ================= HALAMAN LOGIN / AUTENTIKASI ================= -->
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[999] flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 transform transition-all">
-            <div class="text-center mb-8">
+    <!-- ================= HALAMAN LOGIN / AUTENTIKASI EMAIL & PASSWORD ================= -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[999] flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 transform transition-all">
+            <div class="text-center mb-6">
                 <div class="inline-flex bg-indigo-600 text-white p-3.5 rounded-2xl mb-3 shadow-lg shadow-indigo-500/20">
-                    <i data-lucide="shield-check" class="w-8 h-8"></i>
+                    <i data-lucide="lock-keyhole" class="w-8 h-8"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Gerbang Masuk HadirKu</h2>
-                <p class="text-xs text-slate-400 mt-1">Silakan pilih peran Anda untuk mulai mengelola kehadiran</p>
+                <p class="text-xs text-slate-400 mt-1">Gunakan akun email terdaftar untuk mengelola presensi kelas</p>
             </div>
 
-            <div class="space-y-4">
-                <button onclick="selectRole('guru')" class="w-full p-4 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl text-left hover:bg-indigo-50/30 transition duration-150 flex items-center justify-between group">
-                    <div class="flex items-center space-x-4">
-                        <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-100 transition">
-                            <i data-lucide="graduation-cap" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <span class="block font-bold text-slate-800 text-sm">Masuk sebagai Guru Piket</span>
-                            <span class="block text-xs text-slate-400">Hanya melakukan presensi kelas & rekap</span>
-                        </div>
+            <form id="auth-form" onsubmit="handleEmailLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Alamat Email Sekolah</label>
+                    <div class="relative">
+                        <input type="email" id="login-email" required placeholder="nama@sekolah.sch.id" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <i data-lucide="mail" class="absolute left-3.5 top-3 w-4 h-4 text-slate-400"></i>
                     </div>
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-indigo-600 transition"></i>
-                </button>
+                </div>
 
-                <button onclick="selectRole('admin')" class="w-full p-4 border-2 border-slate-100 hover:border-violet-500 rounded-2xl text-left hover:bg-violet-50/30 transition duration-150 flex items-center justify-between group">
-                    <div class="flex items-center space-x-4">
-                        <div class="p-2.5 bg-violet-50 text-violet-600 rounded-xl group-hover:bg-violet-100 transition">
-                            <i data-lucide="sliders" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <span class="block font-bold text-slate-800 text-sm">Masuk sebagai Administrator</span>
-                            <span class="block text-xs text-slate-400">Akses penuh kelola data master siswa</span>
-                        </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Kata Sandi</label>
+                    <div class="relative">
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <i data-lucide="key" class="absolute left-3.5 top-3 w-4 h-4 text-slate-400"></i>
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600">
+                            <i id="eye-icon" data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
                     </div>
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-violet-600 transition"></i>
-                </button>
-            </div>
+                </div>
 
-            <div class="mt-8 text-center">
-                <span class="text-[10px] text-slate-400 font-medium">Sistem Keamanan Terenkripsi SSL Cloud Firebase</span>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Pilih Mode Masuk</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="border-2 border-slate-100 hover:border-indigo-200 rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer transition" id="label-role-guru">
+                            <input type="radio" name="login-role" value="guru" checked class="text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-xs font-semibold text-slate-700">Guru Piket</span>
+                        </label>
+                        <label class="border-2 border-slate-100 hover:border-indigo-200 rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer transition" id="label-role-admin">
+                            <input type="radio" name="login-role" value="admin" class="text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-xs font-semibold text-slate-700">Administrator</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" id="login-btn-submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/20">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Masuk ke Akun</span>
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <span class="text-[10px] text-slate-400 font-medium block">Sistem Keamanan Terenkripsi SSL Cloud Firebase</span>
             </div>
         </div>
     </div>
@@ -104,6 +131,12 @@
                             <span class="text-xs block text-slate-400">Hari ini</span>
                         </div>
                         <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs" id="user-avatar-text">
+                                U
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700 hidden md:block max-w-[150px] truncate" id="user-display">Memuat...</span>
+                        </div>
                         <button onclick="logout()" class="px-3.5 py-1.5 border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
                             <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
                             <span class="hidden sm:inline">Keluar</span>
@@ -386,7 +419,7 @@
                     <i data-lucide="shield-alert" class="w-5 h-5 text-amber-600"></i>
                     <div>
                         <span class="font-bold block">Mode Peninjauan (Terbatas)</span>
-                        Anda saat ini masuk sebagai Guru Piket. Anda hanya dapat melihat database murid. Untuk melakukan perubahan siswa, silakan keluar lalu login sebagai Administrator.
+                        Anda saat ini masuk sebagai Guru Piket. Anda hanya dapat melihat database murid. Untuk melakukan perubahan siswa, silakan keluar lalu login dengan akun bermode Administrator.
                     </div>
                 </div>
 
@@ -531,7 +564,7 @@
                 <div class="bg-white p-3.5 rounded-2xl shadow-sm text-xs text-slate-800 max-w-[85%] ml-auto rounded-tr-none relative border border-emerald-100">
                     <div class="font-bold text-teal-700 text-[10px] mb-1">Sistem HadirKu</div>
                     <p id="wa-message-content">Pesan memuat...</p>
-                    <span id="wa-time" class="block text-right text-[9px] text-slate-400 mt-2 font-mono">21:34 ✓✓</span>
+                    <span id="wa-time" class="block text-right text-[9px] text-slate-400 mt-2 font-mono">13:35 ✓✓</span>
                 </div>
             </div>
 
@@ -563,33 +596,43 @@
 
     <!-- ================= FIREBASE SDK & CORE APPLICATION LOGIC ================= -->
     <script type="module">
-        // Import Firebase SDK Modules yang dibutuhkan
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDocs, collection, query, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Firebase Default (Iframe terisolasi)
+        // Konfigurasi Firebase (Harap ganti template di bawah ini dengan milik Anda di produksi)
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyB-jTrZ9jrYf6XsgtQniS1n6BijjnkSHjo", 
-            authDomain: "hadirku-app-2ebb0.firebaseapp.com",
-            projectId: "hadirku-app-2ebb0",
-            storageBucket: "hadirku-app-2ebb0.firebasestorage.app",
-            messagingSenderId: "146765842003",
-            appId: "1:146765842003:web:54591402c7b2d4091728a6"
+            apiKey: "TEMPEL_API_KEY_ANDA", 
+            authDomain: "hadirku-app.firebaseapp.com",
+            projectId: "hadirku-app",
+            storageBucket: "hadirku-app.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
         };
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'hadirku-premium';
 
-        // Inisialisasi Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        let isFirebaseActive = false;
+
+        try {
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "TEMPEL_API_KEY_ANDA") {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                isFirebaseActive = true;
+            } else {
+                console.warn("Kredensial Firebase masih kosong. Mengaktifkan mode luring.");
+            }
+        } catch (e) {
+            console.error("Firebase Gagal di-inisialisasi:", e);
+        }
 
         // State Global Aplikasi
         window.dataSiswa = [];
         window.presensiDatabase = {};
         window.currentPresensi = [];
-        window.appRole = 'guru'; // 'guru' atau 'admin'
+        window.appRole = 'guru'; 
         let authUser = null;
 
         // Path Konfigurasi Firestore
@@ -597,34 +640,193 @@
         const getAttendanceDocRef = (key) => doc(db, 'artifacts', appId, 'public', 'data', 'attendance', key);
         const getAttendanceCollectionRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'attendance');
 
-        // Pemicu Autentikasi Mandatori
+        // Proteksi Timeout loading screen (Maksimal 3 detik menunggu Firebase)
+        const loadingTimeout = setTimeout(() => {
+            if (document.getElementById('app-loading')) {
+                const diagBox = document.getElementById('diagnostic-box');
+                if (diagBox) diagBox.classList.remove('hidden');
+                const statusText = document.getElementById('loading-status');
+                if (statusText) statusText.innerHTML = `<span class='text-rose-400 font-bold'>Koneksi Cloud Timeout!</span>`;
+            }
+        }, 3000);
+
+        // Inisialisasi awal Auth
         const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+            if (!isFirebaseActive) {
+                setTimeout(() => {
+                    forceLocalMode();
+                }, 800);
+                return;
+            }
+
+            // Jika user sebelumnya sudah login, Firebase Auth State listener di bawah akan otomatis terpicu
+        };
+
+        // Listen status login email di Firebase
+        if (isFirebaseActive) {
+            onAuthStateChanged(auth, (user) => {
+                clearTimeout(loadingTimeout);
+                if (user) {
+                    authUser = user;
+                    document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-emerald-500";
+                    document.getElementById('db-status-text').innerText = "Cloud Terkoneksi";
+                    
+                    // Baca role dari penyimpanan session lokal agar tidak perlu custom claims rumit
+                    const savedRole = localStorage.getItem('hadirku_last_role') || 'guru';
+                    applyRoleSettings(savedRole);
+
+                    // Tampilkan UI utama
+                    document.getElementById('user-display').innerText = user.email;
+                    document.getElementById('user-avatar-text').innerText = user.email.slice(0,1).toUpperCase();
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+
+                    startFirestoreSync(user);
                 } else {
-                    await signInAnonymously(auth);
+                    authUser = null;
+                    document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-rose-500";
+                    document.getElementById('db-status-text').innerText = "Cloud Offline";
+                    
+                    // Tampilkan layar login
+                    document.getElementById('main-app').classList.add('hidden');
+                    document.getElementById('login-screen').classList.remove('hidden');
+                    document.getElementById('login-screen').classList.remove('opacity-0');
+                    hideLoadingScreen();
                 }
+            });
+        }
+
+        // Jalankan Login menggunakan Email & Password ke Firebase
+        window.handleEmailLogin = async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const role = document.querySelector('input[name="login-role"]:checked').value;
+
+            const submitBtn = document.getElementById('login-btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Memverifikasi sandi...</span>`;
+            lucide.createIcons();
+
+            if (!isFirebaseActive) {
+                // Simulasi offline jika Firebase belum dipasang
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Masuk ke Akun</span>`;
+                    lucide.createIcons();
+                    
+                    // Izinkan login instan jika demo offline
+                    localStorage.setItem('hadirku_last_role', role);
+                    applyRoleSettings(role);
+                    document.getElementById('user-display').innerText = `${email} (Demo)`;
+                    document.getElementById('user-avatar-text').innerText = email.slice(0,1).toUpperCase();
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    forceLocalMode();
+                }, 1000);
+                return;
+            }
+
+            try {
+                // Panggil Firebase SDK autentikasi Email & Password
+                await signInWithEmailAndPassword(auth, email, password);
+                localStorage.setItem('hadirku_last_role', role);
+                showToast(`Autentikasi berhasil! Masuk sebagai <b>${role.toUpperCase()}</b>`, 'success');
             } catch (error) {
-                console.error("Firebase Auth Error:", error);
-                showToast("Koneksi gagal. Menggunakan penyimpanan luring.", "error");
-                hideLoadingScreen();
+                console.error("Gagal Login:", error);
+                let msg = "Email atau password salah! Hubungi Administrator.";
+                if (error.code === 'auth/user-not-found') msg = "Akun email belum terdaftar di sistem sekolah!";
+                else if (error.code === 'auth/wrong-password') msg = "Password salah! Silakan coba lagi.";
+                else if (error.code === 'auth/invalid-email') msg = "Format alamat email tidak valid!";
+                
+                showToast(msg, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Masuk ke Akun</span>`;
+                lucide.createIcons();
             }
         };
 
-        // Listen status login
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                authUser = user;
-                document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-emerald-500";
-                document.getElementById('db-status-text').innerText = "Cloud Terkoneksi";
-                startFirestoreSync(user);
+        // Ganti Aturan Tampilan berdasarkan peran/role
+        function applyRoleSettings(role) {
+            window.appRole = role;
+            const badge = document.getElementById('role-badge');
+            const addSiswaBtn = document.getElementById('add-siswa-btn');
+            const lockBanner = document.getElementById('admin-lock-banner');
+
+            if (role === 'admin') {
+                badge.innerText = "ADMINISTRATOR";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700";
+                addSiswaBtn.classList.remove('hidden');
+                lockBanner.classList.add('hidden');
             } else {
-                authUser = null;
-                document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-rose-500";
-                document.getElementById('db-status-text').innerText = "Cloud Offline";
+                badge.innerText = "GURU PIKET";
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700";
+                addSiswaBtn.classList.add('hidden');
+                lockBanner.classList.remove('hidden');
             }
-        });
+            renderSiswaManager();
+        }
+
+        // Fungsi Keluar / Logout akun aman
+        window.logout = async function() {
+            showConfirm(
+                "Konfirmasi Keluar",
+                "Apakah Anda yakin ingin keluar dan mengunci akses absensi?",
+                "indigo",
+                async () => {
+                    if (isFirebaseActive) {
+                        try {
+                            await signOut(auth);
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    } else {
+                        // Logout simulasi offline
+                        document.getElementById('main-app').classList.add('hidden');
+                        document.getElementById('login-screen').classList.remove('hidden');
+                    }
+                }
+            );
+        };
+
+        // Jalankan Mode Demo Lokal (Bebas Stuck - Menggunakan LocalStorage)
+        window.forceLocalMode = forceLocalMode;
+        function forceLocalMode() {
+            clearTimeout(loadingTimeout);
+            isFirebaseActive = false;
+            
+            document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-amber-500";
+            document.getElementById('db-status-text').innerText = "Mode Demo Lokal";
+
+            const localSiswa = localStorage.getItem('hadirku_siswa');
+            const localPresensi = localStorage.getItem('hadirku_presensi');
+
+            if (localSiswa) {
+                window.dataSiswa = JSON.parse(localSiswa);
+            } else {
+                window.dataSiswa = [
+                    { id: "s-1", nis: "10120", nama: "Ahmad Rizky Pratama", kontak: "081234567891", gender: "L", kelas: "XII IPA 1" },
+                    { id: "s-2", nis: "10121", nama: "Amanda Putri Siregar", kontak: "081234567892", gender: "P", kelas: "XII IPA 1" },
+                    { id: "s-3", nis: "10122", nama: "Budi Santoso", kontak: "081234567893", gender: "L", kelas: "XII IPA 1" },
+                    { id: "s-4", nis: "10123", nama: "Citra Dewi Lestari", kontak: "081234567894", gender: "P", kelas: "XII IPA 1" },
+                    { id: "s-5", nis: "10240", nama: "Gita Permata Sari", kontak: "081234567895", gender: "P", kelas: "XII IPA 2" },
+                    { id: "s-6", nis: "10241", nama: "Hendra Wijaya", kontak: "081234567896", gender: "L", kelas: "XII IPA 2" },
+                    { id: "s-7", nis: "10350", nama: "Kartika Sari", kontak: "081234567897", gender: "P", kelas: "XII IPS 1" }
+                ];
+                localStorage.setItem('hadirku_siswa', JSON.stringify(window.dataSiswa));
+            }
+
+            if (localPresensi) {
+                window.presensiDatabase = JSON.parse(localPresensi);
+            }
+
+            loadPresensi();
+            renderSiswaManager();
+            renderRiwayatList();
+            hideLoadingScreen();
+            showToast("Berjalan dalam Mode Demo Luring (Local Storage).", "info");
+        }
 
         // Hubungkan Firestore secara Real-time
         function startFirestoreSync(user) {
@@ -655,7 +857,9 @@
                 snapshot.forEach(doc => {
                     window.presensiDatabase[doc.id] = doc.data().records;
                 });
-                document.getElementById('log-count').innerText = Object.keys(window.presensiDatabase).length;
+                const countLog = Object.keys(window.presensiDatabase).length;
+                const logCountEl = document.getElementById('log-count');
+                if (logCountEl) logCountEl.innerText = countLog;
                 loadPresensi();
                 renderRiwayatList();
             }, (error) => {
@@ -694,7 +898,7 @@
             }
         }
 
-        // Publikasikan ke lingkup global agar bisa dipanggil element HTML onclick
+        // Publikasikan ke lingkup global agar bisa dipanggil dari HTML
         window.loadPresensi = loadPresensi;
         window.saveCurrentPresensi = saveCurrentPresensi;
         window.setAllAttendance = setAllAttendance;
@@ -714,14 +918,26 @@
         window.switchTab = switchTab;
         window.showToast = showToast;
         window.showConfirm = showConfirm;
-        window.selectRole = selectRole;
-        window.logout = logout;
         window.triggerAlpaAlert = triggerAlpaAlert;
         window.closeWaModal = closeWaModal;
         window.triggerSimulatedWhatsAppSend = triggerSimulatedWhatsAppSend;
         window.calculateCumulative = calculateCumulative;
+        
+        // Utilitas Login UI
+        window.togglePasswordVisibility = function() {
+            const passInput = document.getElementById('login-password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                passInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        };
 
-        // Inisialisasi awal tanggal
+        // Inisialisasi awal tanggal & muat asset
         window.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             const year = today.getFullYear();
@@ -732,47 +948,6 @@
             initAuth();
             lucide.createIcons();
         });
-
-        // --- SISTEM ROLE & LOGIN ---
-        function selectRole(role) {
-            window.appRole = role;
-            
-            const badge = document.getElementById('role-badge');
-            const addSiswaBtn = document.getElementById('add-siswa-btn');
-            const lockBanner = document.getElementById('admin-lock-banner');
-
-            if (role === 'admin') {
-                badge.innerText = "ADMINISTRATOR";
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700";
-                addSiswaBtn.classList.remove('hidden');
-                lockBanner.classList.add('hidden');
-            } else {
-                badge.innerText = "GURU PIKET";
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700";
-                addSiswaBtn.classList.add('hidden');
-                lockBanner.classList.remove('hidden');
-            }
-
-            // Hilangkan layar login
-            const loginScreen = document.getElementById('login-screen');
-            loginScreen.classList.add('opacity-0');
-            setTimeout(() => {
-                loginScreen.classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-            }, 300);
-
-            showToast(`Masuk berhasil sebagai <b>${role.toUpperCase()}</b>`, 'success');
-            renderSiswaManager();
-        }
-
-        function logout() {
-            document.getElementById('main-app').classList.add('hidden');
-            const loginScreen = document.getElementById('login-screen');
-            loginScreen.classList.remove('hidden');
-            setTimeout(() => {
-                loginScreen.classList.remove('opacity-0');
-            }, 50);
-        }
 
         // --- SISTEM PRESENSI ---
         function loadPresensi() {
@@ -908,7 +1083,6 @@
             lucide.createIcons();
         }
 
-        // Pemicu Pengiriman WA Jika Siswa Alpa (A)
         let pendingWaNotification = null;
 
         function changeAttendanceStatus(siswaId, newStatus) {
@@ -927,7 +1101,6 @@
             }
         }
 
-        // Pemicu Notifikasi WA Simulasi
         function triggerAlpaAlert(siswa) {
             const dateStr = document.getElementById('absensi-date').value;
             const msg = `Pemberitahuan Sekolah HadirKu: Selamat siang Bapak/Ibu Wali Murid, menginfokan bahwa siswa kami bernama *${siswa.nama}* (${siswa.kelas}) terdata *ALPA* (tanpa keterangan) dalam presensi tertanggal ${dateStr}. Mohon hubungi wali kelas untuk konfirmasi lanjutan.`;
@@ -940,7 +1113,6 @@
             document.getElementById('wa-recipient-phone').innerText = siswa.kontak;
             document.getElementById('wa-message-content').innerText = msg;
             
-            // Atur waktu sekarang
             const now = new Date();
             document.getElementById('wa-time').innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} ✓✓`;
 
@@ -954,7 +1126,6 @@
 
         function triggerSimulatedWhatsAppSend() {
             if (pendingWaNotification) {
-                // Link asli WhatsApp untuk mengirim pesan secara real
                 const formattedPhone = pendingWaNotification.phone.replace(/^0/, '62');
                 const waLink = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(pendingWaNotification.message)}`;
                 
@@ -991,13 +1162,8 @@
             renderPresensiTable(keyword);
         }
 
-        // Simpan Absensi Ke Cloud (Firebase Firestore)
+        // Simpan Absensi Ke Cloud atau Lokal
         async function saveCurrentPresensi() {
-            if (!authUser) {
-                showToast("Gagal menyimpan. Hubungkan ke Cloud terlebih dahulu.", "error");
-                return;
-            }
-
             const kelas = document.getElementById('kelas-select').value;
             const tanggal = document.getElementById('absensi-date').value;
 
@@ -1008,23 +1174,37 @@
 
             const key = `${kelas}|${tanggal}`.replace(/\//g, "-");
 
-            try {
-                await setDoc(getAttendanceDocRef(key), {
-                    kelas: kelas,
-                    tanggal: tanggal,
-                    records: window.currentPresensi,
-                    updatedAt: new Date().toISOString()
-                });
-                showToast(`Presensi kelas <b>${kelas}</b> tanggal <b>${tanggal}</b> berhasil disimpan ke Cloud!`, 'success');
-            } catch (error) {
-                console.error("Firestore Save Error:", error);
-                showToast("Gagal menyimpan absensi ke Cloud. Cek koneksi Anda.", "error");
+            if (isFirebaseActive && authUser) {
+                try {
+                    await setDoc(getAttendanceDocRef(key), {
+                        kelas: kelas,
+                        tanggal: tanggal,
+                        records: window.currentPresensi,
+                        updatedAt: new Date().toISOString()
+                    });
+                    showToast(`Presensi kelas <b>${kelas}</b> tanggal <b>${tanggal}</b> berhasil disimpan ke Cloud!`, 'success');
+                } catch (error) {
+                    console.error("Firestore Save Error:", error);
+                    showToast("Gagal menyimpan ke Cloud. Menyimpan ke lokal...", "error");
+                    savePresensiLocal(key);
+                }
+            } else {
+                savePresensiLocal(key);
             }
+        }
+
+        function savePresensiLocal(key) {
+            window.presensiDatabase[key] = window.currentPresensi;
+            localStorage.setItem('hadirku_presensi', JSON.stringify(window.presensiDatabase));
+            showToast(`Presensi berhasil disimpan secara lokal!`, 'success');
+            renderRiwayatList();
         }
 
         // --- SISTEM FUNGSI RIWAYAT & REKAP ---
         function renderRiwayatList() {
             const listContainer = document.getElementById('riwayat-list-container');
+            if (!listContainer) return;
+            
             listContainer.innerHTML = '';
 
             const filterKelas = document.getElementById('riwayat-kelas-select').value;
@@ -1061,7 +1241,7 @@
                     </div>
                     <div class="text-right">
                         <span class="text-xs font-semibold text-emerald-600 block">${hadir}/${total} Hadir</span>
-                        <span class="text-[10px] text-slate-400 font-medium block">Efektivitas: ${persentase}%</span>
+                        <span class="text-[10px] text-slate-400 font-medium block">Rasio Kehadiran: ${persentase}%</span>
                     </div>
                 `;
                 listContainer.appendChild(card);
@@ -1129,7 +1309,6 @@
             });
         }
 
-        // Ekspor ke format spreadsheet (.csv) agar guru bisa membukanya langsung di Microsoft Excel
         function exportCSV() {
             const filterKelas = document.getElementById('riwayat-kelas-select').value;
             const filterBulan = document.getElementById('riwayat-bulan-select').value;
@@ -1175,7 +1354,6 @@
             showToast("Berhasil menghasilkan dokumen rekap .CSV", "success");
         }
 
-        // Kalkulasi Kehadiran Kumulatif Per Siswa
         function calculateCumulative() {
             const tbody = document.getElementById('cumulative-table-body');
             tbody.innerHTML = '';
@@ -1196,7 +1374,6 @@
                 let counts = { Hadir: 0, Sakit: 0, Izin: 0, Alpa: 0 };
                 let totalLog = 0;
 
-                // Telusuri seluruh database presensi
                 Object.keys(window.presensiDatabase).forEach(key => {
                     const [kelas, tanggal] = key.split('|');
                     if (kelas !== activeKelas) return;
@@ -1276,6 +1453,8 @@
         // --- SISTEM FUNGSI KELOLA DATA SISWA ---
         function renderSiswaManager() {
             const body = document.getElementById('kelola-siswa-body');
+            if (!body) return;
+            
             body.innerHTML = '';
 
             const kelasSelected = document.getElementById('kelola-kelas-select').value;
@@ -1382,7 +1561,7 @@
 
         async function handleSiswaFormSubmit(event) {
             event.preventDefault();
-            if (!authUser || window.appRole === 'guru') return;
+            if (window.appRole === 'guru') return;
 
             const editId = document.getElementById('edit-siswa-id').value;
             const nis = document.getElementById('siswa-nis').value.trim();
@@ -1391,21 +1570,33 @@
             const gender = document.getElementById('siswa-gender').value;
             const kelas = document.getElementById('siswa-kelas').value;
 
-            try {
-                if (editId) {
-                    const siswaDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', editId);
-                    await updateDoc(siswaDocRef, { nis, nama, kontak, gender, kelas });
-                    showToast("Data siswa berhasil diperbarui di Cloud!", "success");
-                } else {
-                    const newDocRef = doc(getStudentsCollectionRef());
-                    await setDoc(newDocRef, { nis, nama, kontak, gender, kelas });
-                    showToast(`Siswa baru <b>${nama}</b> berhasil didaftarkan ke Cloud!`, "success");
+            if (isFirebaseActive && authUser) {
+                try {
+                    if (editId) {
+                        const siswaDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', editId);
+                        await updateDoc(siswaDocRef, { nis, nama, kontak, gender, kelas });
+                        showToast("Data siswa berhasil diperbarui di Cloud!", "success");
+                    } else {
+                        const newDocRef = doc(getStudentsCollectionRef());
+                        await setDoc(newDocRef, { nis, nama, kontak, gender, kelas });
+                        showToast(`Siswa baru <b>${nama}</b> berhasil didaftarkan ke Cloud!`, "success");
+                    }
+                } catch (err) {
+                    console.error("Gagal menyimpan siswa:", err);
+                    showToast("Gagal menyimpan data ke Cloud database.", "error");
                 }
-                closeSiswaModal();
+            } else {
+                if (editId) {
+                    const idx = window.dataSiswa.findIndex(s => s.id === editId);
+                    if (idx !== -1) window.dataSiswa[idx] = { id: editId, nis, nama, kontak, gender, kelas };
+                } else {
+                    const newId = 's-' + Date.now();
+                    window.dataSiswa.push({ id: newId, nis, nama, kontak, gender, kelas });
+                }
+                localStorage.setItem('hadirku_siswa', JSON.stringify(window.dataSiswa));
+                showToast("Siswa berhasil disimpan secara lokal!", "success");
                 renderSiswaManager();
-            } catch (err) {
-                console.error("Gagal menyimpan siswa:", err);
-                showToast("Gagal menyimpan data ke Cloud database.", "error");
+                closeSiswaModal();
             }
         }
 
@@ -1413,21 +1604,27 @@
             if (window.appRole === 'guru') return;
 
             const siswa = window.dataSiswa.find(s => s.id === id);
-            if (!siswa || !authUser) return;
+            if (!siswa) return;
 
             showConfirm(
                 "Konfirmasi Hapus",
-                `Apakah Anda yakin ingin menghapus siswa <b>${siswa.nama}</b> dari daftar awan?`,
+                `Apakah Anda yakin ingin menghapus siswa <b>${siswa.nama}</b> dari daftar?`,
                 "rose",
                 async () => {
-                    try {
-                        const siswaDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', id);
-                        await deleteDoc(siswaDocRef);
-                        showToast("Siswa berhasil dihapus dari Cloud database.", "success");
+                    if (isFirebaseActive && authUser) {
+                        try {
+                            const siswaDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', id);
+                            await deleteDoc(siswaDocRef);
+                            showToast("Siswa berhasil dihapus dari Cloud database.", "success");
+                        } catch (err) {
+                            console.error("Gagal menghapus siswa:", err);
+                            showToast("Gagal menghapus siswa dari Cloud.", "error");
+                        }
+                    } else {
+                        window.dataSiswa = window.dataSiswa.filter(s => s.id !== id);
+                        localStorage.setItem('hadirku_siswa', JSON.stringify(window.dataSiswa));
+                        showToast("Siswa berhasil dihapus dari penyimpanan lokal.", "success");
                         renderSiswaManager();
-                    } catch (err) {
-                        console.error("Gagal menghapus siswa:", err);
-                        showToast("Gagal menghapus siswa dari Cloud.", "error");
                     }
                 }
             );
@@ -1464,6 +1661,8 @@
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
+            if (!container) return;
+            
             const toast = document.createElement('div');
             
             let bgClass = "bg-white border-slate-200 text-slate-800";
