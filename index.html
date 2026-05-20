@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HadirKu - Sistem Presensi Kelas Real-Time Premium</title>
+    <title>HadirKu - Sistem Presensi Kelas Real-Time Cloud</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts (Plus Jakarta Sans) -->
@@ -19,7 +19,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Screen Loading Awal (Dengan Proteksi Timeout Anti-Stuck) -->
+    <!-- Screen Loading Awal (Proteksi Koneksi & Konfigurasi) -->
     <div id="app-loading" class="fixed inset-0 bg-slate-900 text-white z-[9999] flex flex-col items-center justify-center p-6 text-center transition-opacity duration-500">
         <div class="bg-indigo-600 text-white p-4 rounded-2xl mb-4 animate-bounce">
             <i data-lucide="calendar-check-2" class="w-10 h-10"></i>
@@ -27,34 +27,35 @@
         <h2 class="text-xl font-bold tracking-tight">HadirKu Premium</h2>
         <p id="loading-status" class="text-xs text-slate-400 mt-2 flex items-center gap-2 justify-center">
             <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping"></span>
-            Mengamankan sambungan enkripsi cloud...
+            Menghubungkan ke Cloud Database...
         </p>
 
-        <!-- Diagnostik box (tersembunyi secara default, muncul jika lambat/Firebase belum diisi) -->
-        <div id="diagnostic-box" class="hidden mt-8 max-w-sm p-4 bg-slate-800 rounded-2xl border border-slate-700 text-left">
-            <span class="text-amber-400 font-bold text-xs flex items-center gap-1.5 mb-2">
-                <i data-lucide="alert-triangle" class="w-4 h-4"></i> Koneksi Cloud Terhambat
+        <!-- Diagnostik box (Muncul hanya jika konfigurasi belum diisi atau koneksi gagal) -->
+        <div id="diagnostic-box" class="hidden mt-8 max-w-sm p-5 bg-slate-800 rounded-2xl border border-slate-700 text-left">
+            <span class="text-rose-400 font-bold text-xs flex items-center gap-1.5 mb-2">
+                <i data-lucide="shield-alert" class="w-4 h-4"></i> Konfigurasi Cloud Diperlukan
             </span>
             <p class="text-[11px] text-slate-300 leading-relaxed mb-4">
-                Aplikasi membutuhkan waktu terlalu lama untuk terhubung ke Firebase Cloud. Pastikan Anda telah mengisi <code class="bg-slate-950 px-1 py-0.5 rounded text-rose-400 font-mono">firebaseConfig</code> di file index.html dengan benar dan mengaktifkan <strong class="text-white">Email/Password Auth</strong> di Firebase Console.
+                Sistem mendeteksi bahwa <code class="bg-slate-950 px-1 py-0.5 rounded text-rose-400 font-mono">firebaseConfig</code> belum dikonfigurasi dengan benar atau komputer tidak memiliki akses internet.
             </p>
-            <div class="flex gap-2">
-                <button onclick="forceLocalMode()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">
-                    <i data-lucide="wifi-off" class="w-3.5 h-3.5"></i> Masuk Mode Demo Lokal (Offline)
-                </button>
+            <div class="text-[10px] text-slate-400 space-y-1 bg-slate-900 p-3 rounded-xl border border-slate-700">
+                <span class="block font-semibold text-slate-300 mb-1">Langkah Penyelesaian:</span>
+                <span class="block">1. Buka file <code class="text-indigo-400">index.html</code> di VS Code.</span>
+                <span class="block">2. Temukan objek <code class="text-indigo-400">firebaseConfig</code> di bagian bawah.</span>
+                <span class="block">3. Masukkan kredensial API Key dari Firebase Console Anda.</span>
             </div>
         </div>
     </div>
 
     <!-- ================= HALAMAN LOGIN / AUTENTIKASI EMAIL & PASSWORD ================= -->
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[999] flex items-center justify-center p-4 overflow-y-auto">
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[999] flex items-center justify-center p-4 overflow-y-auto hidden">
         <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 transform transition-all">
             <div class="text-center mb-6">
                 <div class="inline-flex bg-indigo-600 text-white p-3.5 rounded-2xl mb-3 shadow-lg shadow-indigo-500/20">
                     <i data-lucide="lock-keyhole" class="w-8 h-8"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Gerbang Masuk HadirKu</h2>
-                <p class="text-xs text-slate-400 mt-1">Gunakan akun email terdaftar untuk mengelola presensi kelas</p>
+                <p class="text-xs text-slate-400 mt-1">Gunakan akun email sekolah yang terdaftar di Firebase</p>
             </div>
 
             <form id="auth-form" onsubmit="handleEmailLogin(event)" class="space-y-4">
@@ -98,7 +99,7 @@
             </form>
 
             <div class="mt-6 text-center">
-                <span class="text-[10px] text-slate-400 font-medium block">Sistem Keamanan Terenkripsi SSL Cloud Firebase</span>
+                <span class="text-[10px] text-slate-400 font-medium block">Sistem Keamanan Terautentikasi Cloud SSL</span>
             </div>
         </div>
     </div>
@@ -120,8 +121,8 @@
                                 <span id="role-badge" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Guru</span>
                             </div>
                             <span class="text-xs block text-slate-500 font-medium flex items-center gap-1">
-                                <span id="db-status-dot" class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
-                                <span id="db-status-text">Cloud Offline</span>
+                                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                <span>Cloud Database Online</span>
                             </span>
                         </div>
                     </div>
@@ -279,7 +280,7 @@
                                 </tr>
                             </thead>
                             <tbody id="presensi-table-body" class="divide-y divide-slate-100 text-sm text-slate-700">
-                                <!-- Dipopulasi dari JS/Firebase -->
+                                <!-- Dipopulasi dari Firebase -->
                             </tbody>
                         </table>
                     </div>
@@ -340,7 +341,7 @@
                         </div>
                         <p class="text-xs text-slate-500">Pilih salah satu rekaman tanggal di bawah untuk melihat rincian.</p>
                         <div id="riwayat-list-container" class="space-y-2 max-h-[450px] overflow-y-auto pr-1">
-                            <!-- Dipopulasi dari JS/Firebase -->
+                            <!-- Dipopulasi dari Firebase -->
                         </div>
                     </div>
 
@@ -383,10 +384,10 @@
                     <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
                         <div>
                             <h3 class="font-bold text-slate-900 text-base">Persentase Kehadiran Kumulatif</h3>
-                            <p class="text-xs text-slate-500">Akumulasi statistik kehadiran individual dari semua log tersimpan.</p>
+                            <p class="text-xs text-slate-500">Akumulasi statistik kehadiran individual dari semua log tersimpan di database cloud.</p>
                         </div>
                         <button onclick="calculateCumulative()" class="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
-                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin-hover"></i>
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                             <span>Kalkulasi Kumulatif</span>
                         </button>
                     </div>
@@ -460,7 +461,7 @@
                                 </tr>
                             </thead>
                             <tbody id="kelola-siswa-body" class="divide-y divide-slate-100 text-sm text-slate-700">
-                                <!-- Dipopulasi dari JS/Firebase -->
+                                <!-- Dipopulasi dari Firebase -->
                             </tbody>
                         </table>
                     </div>
@@ -600,7 +601,7 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDocs, collection, query, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Firebase (Harap ganti template di bawah ini dengan milik Anda di produksi)
+        // Konfigurasi Firebase Utama (Harap isi dengan kredensial Firebase pribadi Anda)
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "TEMPEL_API_KEY_ANDA", 
             authDomain: "hadirku-app.firebaseapp.com",
@@ -622,10 +623,10 @@
                 db = getFirestore(app);
                 isFirebaseActive = true;
             } else {
-                console.warn("Kredensial Firebase masih kosong. Mengaktifkan mode luring.");
+                console.warn("Kredensial Firebase masih kosong. Aplikasi ditahan pada layar pemuatan.");
             }
         } catch (e) {
-            console.error("Firebase Gagal di-inisialisasi:", e);
+            console.error("Firebase gagal di-inisialisasi:", e);
         }
 
         // State Global Aplikasi
@@ -640,26 +641,22 @@
         const getAttendanceDocRef = (key) => doc(db, 'artifacts', appId, 'public', 'data', 'attendance', key);
         const getAttendanceCollectionRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'attendance');
 
-        // Proteksi Timeout loading screen (Maksimal 3 detik menunggu Firebase)
+        // Proteksi Timeout loading screen (Maksimal 3 detik menunggu inisialisasi Firebase)
         const loadingTimeout = setTimeout(() => {
             if (document.getElementById('app-loading')) {
                 const diagBox = document.getElementById('diagnostic-box');
                 if (diagBox) diagBox.classList.remove('hidden');
                 const statusText = document.getElementById('loading-status');
-                if (statusText) statusText.innerHTML = `<span class='text-rose-400 font-bold'>Koneksi Cloud Timeout!</span>`;
+                if (statusText) statusText.innerHTML = `<span class='text-rose-400 font-bold'>Gagal Terhubung ke Cloud!</span>`;
             }
         }, 3000);
 
         // Inisialisasi awal Auth
         const initAuth = async () => {
             if (!isFirebaseActive) {
-                setTimeout(() => {
-                    forceLocalMode();
-                }, 800);
+                // Jangan lakukan apapun jika Firebase belum terkonfigurasi, biarkan tetap di loading diagnostik
                 return;
             }
-
-            // Jika user sebelumnya sudah login, Firebase Auth State listener di bawah akan otomatis terpicu
         };
 
         // Listen status login email di Firebase
@@ -668,26 +665,26 @@
                 clearTimeout(loadingTimeout);
                 if (user) {
                     authUser = user;
-                    document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-emerald-500";
-                    document.getElementById('db-status-text').innerText = "Cloud Terkoneksi";
                     
-                    // Baca role dari penyimpanan session lokal agar tidak perlu custom claims rumit
+                    // Baca role terakhir dari session lokal
                     const savedRole = localStorage.getItem('hadirku_last_role') || 'guru';
                     applyRoleSettings(savedRole);
 
-                    // Tampilkan UI utama
+                    // Tampilkan info akun masuk
                     document.getElementById('user-display').innerText = user.email;
                     document.getElementById('user-avatar-text').innerText = user.email.slice(0,1).toUpperCase();
+                    
+                    // Sembunyikan layar loading & login
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('main-app').classList.remove('hidden');
+                    hideLoadingScreen();
 
+                    // Sinkronisasi data real-time
                     startFirestoreSync(user);
                 } else {
                     authUser = null;
-                    document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-rose-500";
-                    document.getElementById('db-status-text').innerText = "Cloud Offline";
                     
-                    // Tampilkan layar login
+                    // Sembunyikan aplikasi utama, tampilkan menu login
                     document.getElementById('main-app').classList.add('hidden');
                     document.getElementById('login-screen').classList.remove('hidden');
                     document.getElementById('login-screen').classList.remove('opacity-0');
@@ -696,39 +693,24 @@
             });
         }
 
-        // Jalankan Login menggunakan Email & Password ke Firebase
+        // Login menggunakan Email & Password Firebase
         window.handleEmailLogin = async function(event) {
             event.preventDefault();
+            if (!isFirebaseActive) {
+                showToast("Sistem belum terhubung ke database. Harap hubungkan Firebase!", "error");
+                return;
+            }
+
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
             const role = document.querySelector('input[name="login-role"]:checked').value;
 
             const submitBtn = document.getElementById('login-btn-submit');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Memverifikasi sandi...</span>`;
+            submitBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Memverifikasi akun...</span>`;
             lucide.createIcons();
 
-            if (!isFirebaseActive) {
-                // Simulasi offline jika Firebase belum dipasang
-                setTimeout(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>Masuk ke Akun</span>`;
-                    lucide.createIcons();
-                    
-                    // Izinkan login instan jika demo offline
-                    localStorage.setItem('hadirku_last_role', role);
-                    applyRoleSettings(role);
-                    document.getElementById('user-display').innerText = `${email} (Demo)`;
-                    document.getElementById('user-avatar-text').innerText = email.slice(0,1).toUpperCase();
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('main-app').classList.remove('hidden');
-                    forceLocalMode();
-                }, 1000);
-                return;
-            }
-
             try {
-                // Panggil Firebase SDK autentikasi Email & Password
                 await signInWithEmailAndPassword(auth, email, password);
                 localStorage.setItem('hadirku_last_role', role);
                 showToast(`Autentikasi berhasil! Masuk sebagai <b>${role.toUpperCase()}</b>`, 'success');
@@ -747,7 +729,6 @@
             }
         };
 
-        // Ganti Aturan Tampilan berdasarkan peran/role
         function applyRoleSettings(role) {
             window.appRole = role;
             const badge = document.getElementById('role-badge');
@@ -768,7 +749,6 @@
             renderSiswaManager();
         }
 
-        // Fungsi Keluar / Logout akun aman
         window.logout = async function() {
             showConfirm(
                 "Konfirmasi Keluar",
@@ -781,52 +761,10 @@
                         } catch (err) {
                             console.error(err);
                         }
-                    } else {
-                        // Logout simulasi offline
-                        document.getElementById('main-app').classList.add('hidden');
-                        document.getElementById('login-screen').classList.remove('hidden');
                     }
                 }
             );
         };
-
-        // Jalankan Mode Demo Lokal (Bebas Stuck - Menggunakan LocalStorage)
-        window.forceLocalMode = forceLocalMode;
-        function forceLocalMode() {
-            clearTimeout(loadingTimeout);
-            isFirebaseActive = false;
-            
-            document.getElementById('db-status-dot').className = "w-1.5 h-1.5 bg-amber-500";
-            document.getElementById('db-status-text').innerText = "Mode Demo Lokal";
-
-            const localSiswa = localStorage.getItem('hadirku_siswa');
-            const localPresensi = localStorage.getItem('hadirku_presensi');
-
-            if (localSiswa) {
-                window.dataSiswa = JSON.parse(localSiswa);
-            } else {
-                window.dataSiswa = [
-                    { id: "s-1", nis: "10120", nama: "Ahmad Rizky Pratama", kontak: "081234567891", gender: "L", kelas: "XII IPA 1" },
-                    { id: "s-2", nis: "10121", nama: "Amanda Putri Siregar", kontak: "081234567892", gender: "P", kelas: "XII IPA 1" },
-                    { id: "s-3", nis: "10122", nama: "Budi Santoso", kontak: "081234567893", gender: "L", kelas: "XII IPA 1" },
-                    { id: "s-4", nis: "10123", nama: "Citra Dewi Lestari", kontak: "081234567894", gender: "P", kelas: "XII IPA 1" },
-                    { id: "s-5", nis: "10240", nama: "Gita Permata Sari", kontak: "081234567895", gender: "P", kelas: "XII IPA 2" },
-                    { id: "s-6", nis: "10241", nama: "Hendra Wijaya", kontak: "081234567896", gender: "L", kelas: "XII IPA 2" },
-                    { id: "s-7", nis: "10350", nama: "Kartika Sari", kontak: "081234567897", gender: "P", kelas: "XII IPS 1" }
-                ];
-                localStorage.setItem('hadirku_siswa', JSON.stringify(window.dataSiswa));
-            }
-
-            if (localPresensi) {
-                window.presensiDatabase = JSON.parse(localPresensi);
-            }
-
-            loadPresensi();
-            renderSiswaManager();
-            renderRiwayatList();
-            hideLoadingScreen();
-            showToast("Berjalan dalam Mode Demo Luring (Local Storage).", "info");
-        }
 
         // Hubungkan Firestore secara Real-time
         function startFirestoreSync(user) {
@@ -844,11 +782,9 @@
                 } else {
                     loadPresensi();
                     renderSiswaManager();
-                    hideLoadingScreen();
                 }
             }, (error) => {
                 console.error("Gagal sinkron data siswa:", error);
-                hideLoadingScreen();
             });
 
             // 2. Sinkronisasi Data Riwayat Presensi
@@ -867,7 +803,6 @@
             });
         }
 
-        // Seeding Data Master Siswa dengan nomor kontak wali murid
         async function seedDatabaseAwal() {
             const initialSiswa = [
                 { nis: "10120", nama: "Ahmad Rizky Pratama", kontak: "081234567891", gender: "L", kelas: "XII IPA 1" },
@@ -884,7 +819,7 @@
                     const newDoc = doc(getStudentsCollectionRef());
                     await setDoc(newDoc, siswa);
                 }
-                showToast("Sistem mendeteksi database kosong. Memulai inisialisasi awal!", "info");
+                showToast("Berhasil menanam data siswa awal ke cloud!", "info");
             } catch (err) {
                 console.error("Seeding Error: ", err);
             }
@@ -898,7 +833,7 @@
             }
         }
 
-        // Publikasikan ke lingkup global agar bisa dipanggil dari HTML
+        // Publikasikan fungsi global
         window.loadPresensi = loadPresensi;
         window.saveCurrentPresensi = saveCurrentPresensi;
         window.setAllAttendance = setAllAttendance;
@@ -923,7 +858,6 @@
         window.triggerSimulatedWhatsAppSend = triggerSimulatedWhatsAppSend;
         window.calculateCumulative = calculateCumulative;
         
-        // Utilitas Login UI
         window.togglePasswordVisibility = function() {
             const passInput = document.getElementById('login-password');
             const eyeIcon = document.getElementById('eye-icon');
@@ -937,7 +871,6 @@
             lucide.createIcons();
         };
 
-        // Inisialisasi awal tanggal & muat asset
         window.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             const year = today.getFullYear();
@@ -1162,7 +1095,7 @@
             renderPresensiTable(keyword);
         }
 
-        // Simpan Absensi Ke Cloud atau Lokal
+        // Simpan Absensi Ke Cloud Firestore
         async function saveCurrentPresensi() {
             const kelas = document.getElementById('kelas-select').value;
             const tanggal = document.getElementById('absensi-date').value;
@@ -1185,19 +1118,11 @@
                     showToast(`Presensi kelas <b>${kelas}</b> tanggal <b>${tanggal}</b> berhasil disimpan ke Cloud!`, 'success');
                 } catch (error) {
                     console.error("Firestore Save Error:", error);
-                    showToast("Gagal menyimpan ke Cloud. Menyimpan ke lokal...", "error");
-                    savePresensiLocal(key);
+                    showToast("Gagal menyimpan ke Cloud. Periksa koneksi Anda.", "error");
                 }
             } else {
-                savePresensiLocal(key);
+                showToast("Koneksi Cloud non-aktif. Harap konfigurasikan Firebase untuk menyimpan data.", "error");
             }
-        }
-
-        function savePresensiLocal(key) {
-            window.presensiDatabase[key] = window.currentPresensi;
-            localStorage.setItem('hadirku_presensi', JSON.stringify(window.presensiDatabase));
-            showToast(`Presensi berhasil disimpan secara lokal!`, 'success');
-            renderRiwayatList();
         }
 
         // --- SISTEM FUNGSI RIWAYAT & REKAP ---
@@ -1581,22 +1506,13 @@
                         await setDoc(newDocRef, { nis, nama, kontak, gender, kelas });
                         showToast(`Siswa baru <b>${nama}</b> berhasil didaftarkan ke Cloud!`, "success");
                     }
+                    closeSiswaModal();
                 } catch (err) {
                     console.error("Gagal menyimpan siswa:", err);
                     showToast("Gagal menyimpan data ke Cloud database.", "error");
                 }
             } else {
-                if (editId) {
-                    const idx = window.dataSiswa.findIndex(s => s.id === editId);
-                    if (idx !== -1) window.dataSiswa[idx] = { id: editId, nis, nama, kontak, gender, kelas };
-                } else {
-                    const newId = 's-' + Date.now();
-                    window.dataSiswa.push({ id: newId, nis, nama, kontak, gender, kelas });
-                }
-                localStorage.setItem('hadirku_siswa', JSON.stringify(window.dataSiswa));
-                showToast("Siswa berhasil disimpan secara lokal!", "success");
-                renderSiswaManager();
-                closeSiswaModal();
+                showToast("Sistem Cloud tidak aktif. Tidak dapat mengubah data siswa.", "error");
             }
         }
 
@@ -1608,7 +1524,7 @@
 
             showConfirm(
                 "Konfirmasi Hapus",
-                `Apakah Anda yakin ingin menghapus siswa <b>${siswa.nama}</b> dari daftar?`,
+                `Apakah Anda yakin ingin menghapus siswa <b>${siswa.nama}</b> dari daftar awan?`,
                 "rose",
                 async () => {
                     if (isFirebaseActive && authUser) {
@@ -1621,10 +1537,7 @@
                             showToast("Gagal menghapus siswa dari Cloud.", "error");
                         }
                     } else {
-                        window.dataSiswa = window.dataSiswa.filter(s => s.id !== id);
-                        localStorage.setItem('hadirku_siswa', JSON.stringify(window.dataSiswa));
-                        showToast("Siswa berhasil dihapus dari penyimpanan lokal.", "success");
-                        renderSiswaManager();
+                        showToast("Koneksi tidak aktif. Tidak dapat menghapus data di cloud.", "error");
                     }
                 }
             );
