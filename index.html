@@ -36,14 +36,19 @@
                 <i data-lucide="shield-alert" class="w-4 h-4"></i> Konfigurasi Cloud Diperlukan
             </span>
             <p class="text-[11px] text-slate-300 leading-relaxed mb-4">
-                Sistem mendeteksi kegagalan koneksi atau konfigurasi ke server cloud database Anda.
+                Sistem mendeteksi kegagalan koneksi atau inisialisasi ke server cloud database Anda.
             </p>
-            <div class="text-[10px] text-slate-400 space-y-1.5 bg-slate-900 p-3 rounded-xl border border-slate-700">
+            <div class="text-[10px] text-slate-400 space-y-1.5 bg-slate-900 p-3 rounded-xl border border-slate-700 mb-4">
                 <span class="block font-semibold text-slate-300 mb-1">Langkah Penyelesaian:</span>
                 <span class="block">1. Pastikan perangkat Anda terhubung ke internet.</span>
                 <span class="block">2. Pastikan Anda telah mengaktifkan metode login <strong class="text-white">Email/Password</strong> di dashboard Firebase Console Anda (Menu Build > Authentication > Sign-in Method).</span>
                 <span class="block">3. Pastikan minimal ada 1 akun email guru yang terdaftar di menu Users Firebase.</span>
             </div>
+            <!-- Emergency Bypass Button -->
+            <button onclick="forceOpenLogin()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20">
+                <i data-lucide="unlock" class="w-4 h-4"></i>
+                <span>Buka Halaman Login Secara Manual</span>
+            </button>
         </div>
     </div>
 
@@ -55,6 +60,20 @@
             const statusText = document.getElementById('loading-status');
             if (statusText) statusText.innerHTML = `<span class='text-rose-400 font-bold'>Gagal Terhubung ke Cloud!</span>`;
         }, 5000);
+
+        // Fungsi bypass darurat jika inisialisasi lambat
+        window.forceOpenLogin = function() {
+            clearTimeout(window.loadingTimeout);
+            const loadingScreen = document.getElementById('app-loading');
+            if (loadingScreen) {
+                loadingScreen.classList.add('opacity-0');
+                setTimeout(() => loadingScreen.remove(), 500);
+            }
+            const loginScreen = document.getElementById('login-screen');
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+            }
+        };
     </script>
 
     <!-- ================= HALAMAN LOGIN / AUTENTIKASI EMAIL & PASSWORD ================= -->
@@ -619,6 +638,7 @@
             storageBucket: "hadirku-app-2ebb0.firebasestorage.app",
             messagingSenderId: "146765842003",
             appId: "1:146765842003:web:54591402c7b2d4091728a6",
+            measurementId: "G-WYV6PVCN7D"
         };
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'hadirku-premium';
