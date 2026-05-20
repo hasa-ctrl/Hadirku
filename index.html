@@ -30,22 +30,32 @@
             Menghubungkan ke Cloud Database...
         </p>
 
-        <!-- Diagnostik box (Muncul hanya jika konfigurasi belum diisi atau koneksi gagal) -->
+        <!-- Diagnostik box (Terpapar otomatis jika Firebase gagal merespon atau config kosong) -->
         <div id="diagnostic-box" class="hidden mt-8 max-w-sm p-5 bg-slate-800 rounded-2xl border border-slate-700 text-left">
             <span class="text-rose-400 font-bold text-xs flex items-center gap-1.5 mb-2">
                 <i data-lucide="shield-alert" class="w-4 h-4"></i> Konfigurasi Cloud Diperlukan
             </span>
             <p class="text-[11px] text-slate-300 leading-relaxed mb-4">
-                Sistem mendeteksi bahwa <code class="bg-slate-950 px-1 py-0.5 rounded text-rose-400 font-mono">firebaseConfig</code> belum dikonfigurasi dengan benar atau komputer tidak memiliki akses internet.
+                Sistem mendeteksi kegagalan koneksi atau konfigurasi ke server cloud database Anda.
             </p>
-            <div class="text-[10px] text-slate-400 space-y-1 bg-slate-900 p-3 rounded-xl border border-slate-700">
+            <div class="text-[10px] text-slate-400 space-y-1.5 bg-slate-900 p-3 rounded-xl border border-slate-700">
                 <span class="block font-semibold text-slate-300 mb-1">Langkah Penyelesaian:</span>
-                <span class="block">1. Buka file <code class="text-indigo-400">index.html</code> di VS Code.</span>
-                <span class="block">2. Temukan objek <code class="text-indigo-400">firebaseConfig</code> di bagian bawah.</span>
-                <span class="block">3. Masukkan kredensial API Key dari Firebase Console Anda.</span>
+                <span class="block">1. Pastikan perangkat Anda terhubung ke internet.</span>
+                <span class="block">2. Pastikan Anda telah mengaktifkan metode login <strong class="text-white">Email/Password</strong> di dashboard Firebase Console Anda (Menu Build > Authentication > Sign-in Method).</span>
+                <span class="block">3. Pastikan minimal ada 1 akun email guru yang terdaftar di menu Users Firebase.</span>
             </div>
         </div>
     </div>
+
+    <!-- Script Proteksi Pemuatan (Mencegah Layar Hang jika modul ES6 Firebase crash/blocked) -->
+    <script>
+        window.loadingTimeout = setTimeout(() => {
+            const diagBox = document.getElementById('diagnostic-box');
+            if (diagBox) diagBox.classList.remove('hidden');
+            const statusText = document.getElementById('loading-status');
+            if (statusText) statusText.innerHTML = `<span class='text-rose-400 font-bold'>Gagal Terhubung ke Cloud!</span>`;
+        }, 5000);
+    </script>
 
     <!-- ================= HALAMAN LOGIN / AUTENTIKASI EMAIL & PASSWORD ================= -->
     <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[999] flex items-center justify-center p-4 overflow-y-auto hidden">
@@ -601,14 +611,15 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDocs, collection, query, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Firebase Utama (Harap isi dengan kredensial Firebase pribadi Anda)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "TEMPEL_API_KEY_ANDA", 
-            authDomain: "hadirku-app.firebaseapp.com",
-            projectId: "hadirku-app",
-            storageBucket: "hadirku-app.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456"
+        // Konfigurasi Firebase Resmi milik proyek Anda (hadirku-app-2ebb0)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-jTrZ9jrYf6XsgtQniS1n6BijjnkSHjo",
+            authDomain: "hadirku-app-2ebb0.firebaseapp.com",
+            projectId: "hadirku-app-2ebb0",
+            storageBucket: "hadirku-app-2ebb0.firebasestorage.app",
+            messagingSenderId: "146765842003",
+            appId: "1:146765842003:web:54591402c7b2d4091728a6",
+            measurementId: "G-WYV6PVCN7D"
         };
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'hadirku-premium';
@@ -617,14 +628,10 @@
         let isFirebaseActive = false;
 
         try {
-            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "TEMPEL_API_KEY_ANDA") {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                isFirebaseActive = true;
-            } else {
-                console.warn("Kredensial Firebase masih kosong. Aplikasi ditahan pada layar pemuatan.");
-            }
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            isFirebaseActive = true;
         } catch (e) {
             console.error("Firebase gagal di-inisialisasi:", e);
         }
@@ -641,7 +648,7 @@
         const getAttendanceDocRef = (key) => doc(db, 'artifacts', appId, 'public', 'data', 'attendance', key);
         const getAttendanceCollectionRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'attendance');
 
-        // Proteksi Timeout loading screen (Maksimal 3 detik menunggu inisialisasi Firebase)
+        // Proteksi Timeout loading screen (Maksimal 5 detik menunggu inisialisasi Firebase)
         const loadingTimeout = setTimeout(() => {
             if (document.getElementById('app-loading')) {
                 const diagBox = document.getElementById('diagnostic-box');
@@ -649,14 +656,11 @@
                 const statusText = document.getElementById('loading-status');
                 if (statusText) statusText.innerHTML = `<span class='text-rose-400 font-bold'>Gagal Terhubung ke Cloud!</span>`;
             }
-        }, 3000);
+        }, 5000);
 
         // Inisialisasi awal Auth
         const initAuth = async () => {
-            if (!isFirebaseActive) {
-                // Jangan lakukan apapun jika Firebase belum terkonfigurasi, biarkan tetap di loading diagnostik
-                return;
-            }
+            if (!isFirebaseActive) return;
         };
 
         // Listen status login email di Firebase
@@ -717,7 +721,7 @@
             } catch (error) {
                 console.error("Gagal Login:", error);
                 let msg = "Email atau password salah! Hubungi Administrator.";
-                if (error.code === 'auth/user-not-found') msg = "Akun email belum terdaftar di sistem sekolah!";
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = "Akun email belum terdaftar di sistem sekolah atau sandi salah!";
                 else if (error.code === 'auth/wrong-password') msg = "Password salah! Silakan coba lagi.";
                 else if (error.code === 'auth/invalid-email') msg = "Format alamat email tidak valid!";
                 
@@ -1408,7 +1412,7 @@
 
             filteredSiswa.forEach((siswa, index) => {
                 const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50/50 transition";
+                row.className = "hover:bg-slate-50/50 transition duration-150";
                 row.innerHTML = `
                     <td class="py-4 px-6 text-center font-medium text-slate-400">${index + 1}</td>
                     <td class="py-4 px-6 font-mono font-semibold text-slate-600 text-xs">${siswa.nis}</td>
